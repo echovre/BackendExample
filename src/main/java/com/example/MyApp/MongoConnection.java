@@ -1,6 +1,7 @@
 package com.example.MyApp;
 
 import java.net.UnknownHostException;
+import java.util.Optional;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -31,7 +32,7 @@ public class MongoConnection {
 		}
 	}
 
-	public BodyStatusDetail findRecord(String uuid) {
+	public Optional<BodyStatusDetail> findRecord(String uuid) {
 		BasicDBObject whereQuery = new BasicDBObject();
 		whereQuery.put("uuid", uuid);
 		DBCursor cursor = collection.find(whereQuery);
@@ -40,9 +41,12 @@ public class MongoConnection {
 			String body=obj.get("body").toString();
 			String status=obj.get("status").toString();
 			String detail=obj.get("detail").toString();
-			return new BodyStatusDetail(body,status,detail);
+			BodyStatusDetail bsd=new BodyStatusDetail(body,status,detail);
+		    Optional<BodyStatusDetail> obsd= Optional.of(bsd);
+		    return obsd;
 		}else {
-			return new BodyStatusDetail();
+			Optional<BodyStatusDetail> obsd= Optional.empty();
+			return obsd; 
 		}
 	}
 

@@ -55,9 +55,12 @@ public class RequestController {
 	//write transaction and whether it succeeded to some "archive" table in database
 	private boolean makeThirdPartyRequest(Request req){
 		String url="http://example.com/request";
+		
 		try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
+			
 			String requestObj=mapper.writeValueAsString(req);
 			System.out.println("Object to send:"+requestObj);
+			
 			HttpPost httpPost = new HttpPost(url);
 			httpPost.setEntity(new StringEntity(requestObj));
 			System.out.println("Executing request " + httpPost.getRequestLine());
@@ -75,16 +78,16 @@ public class RequestController {
 	}
 
 	//callback from third party service, with "started" message
-	//a little unclear here, assuming the "body" is actually the "status"
+	//a little unclear here, assuming the "body" is a string and corresponds to the "status" message
 	@PostMapping(path = "/callback/{itemid}")
 	@ResponseStatus
 	public Response postCallback(@PathVariable("itemid") String itemid,
-							 	 @RequestBody Body payload) {
-		String message=payload.getBody();
+							 	 @RequestBody String message) {
 		if (message!="STARTED") {
 			System.out.println("Got unrecognized message:"+message);
 		}
 		System.out.println("got "+itemid);
+		//TODO: dont overwrite fields
 		mongoConnection.writeUpdateRecord(itemid, "", message, "");
 		return Response.status(204).build();
 	}
@@ -95,7 +98,7 @@ public class RequestController {
 								@RequestBody StatusDetail payload) {
 		System.out.println("got "+itemid+" callback with status:"+payload.getStatus()+", detail:"+payload.getDetail());
 		//status: started, processed, completed, error
-		//TODO: dont overwrite body
+		//TODO: dont overwrite fields
 		mongoConnection.writeUpdateRecord(itemid, "", payload.getStatus(), payload.getDetail());
 		return Response.status(204).build();
 	}
@@ -103,12 +106,12 @@ public class RequestController {
 	@GetMapping(path = "/status/{itemid}")
 	@ResponseBody
 	public BodyStatusDetail status(@PathVariable("itemid") String itemid){
-		//TODO: get record itemid, status(processed, completed, error), detail
-		BodyStatusDetail result = mongoConnection.findRecord(itemid);
+		Optional<BodyStatusDetail> result = mongoConnection.findRecord(itemid);
 		if(result.isEmpty()) {
-			System.out.println("Could not find record:"+itemid);
+			System.out.println("Could not find record:"+itemid+" , returning empty object!");
+			return new BodyStatusDetail();
 		}
-		return result;
+		return result.get();
 	}
 
 }
