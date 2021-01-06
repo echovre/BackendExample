@@ -31,23 +31,31 @@ public class RequestController {
 	MongoConnection mongoConnection=new MongoConnection();
 	ObjectMapper mapper = new ObjectMapper();
 
+	//assuming payload body is a primitive string
 	@PostMapping(path = "/request", consumes = "application/json", produces = "application/json")
-	public String request(@RequestBody Body payload) throws JsonMappingException, JsonProcessingException {
-		//TODO error handling for body
+	public String request(@RequestBody Body payload) {
+		//TODO error handling if payload body not a string
 		String uniqueID = UUID.randomUUID().toString();
+		//make request
 		Request req=new Request(payload.getBody(),uniqueID);
 		boolean success=makeThirdPartyRequest(req);
+		//record it
+		mongoConnection.writeUpdateRecord(uniqueID, payload.getBody(), null,null);
+
 		if(success) {
 			return "Initiated request for document:"+payload.getBody();
 		}else {
-			return "FAILED to make request for document:"+payload.getBody();
+			return "FAILED to make request for document:"+payload.getBody()+" , not connected?";
 		}
 	}
 
-	//Stub for third party request. Notes:
+	//Stub for third party request
+	//
+	//Notes:
 	//Using apache library here because its supposedly faster
 	//Should do some load testing to confirm
 	//Just using sysout for logging right now, use something prettier(log4j?)
+	//
 	//TODO error handling:
 	//if the third party has some kind of "status" endpoint,
 	//		hit it when starting the controller so we know whether its up
@@ -87,8 +95,7 @@ public class RequestController {
 			System.out.println("Got unrecognized message:"+message);
 		}
 		System.out.println("got "+itemid);
-		//TODO: dont overwrite fields
-		mongoConnection.writeUpdateRecord(itemid, "", message, "");
+		mongoConnection.writeUpdateRecord(itemid, null, message, null);
 		return Response.status(204).build();
 	}
 
@@ -98,8 +105,7 @@ public class RequestController {
 								@RequestBody StatusDetail payload) {
 		System.out.println("got "+itemid+" callback with status:"+payload.getStatus()+", detail:"+payload.getDetail());
 		//status: started, processed, completed, error
-		//TODO: dont overwrite fields
-		mongoConnection.writeUpdateRecord(itemid, "", payload.getStatus(), payload.getDetail());
+		mongoConnection.writeUpdateRecord(itemid, null, payload.getStatus(), payload.getDetail());
 		return Response.status(204).build();
 	}
 

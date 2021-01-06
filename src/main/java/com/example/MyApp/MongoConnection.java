@@ -51,20 +51,32 @@ public class MongoConnection {
 	}
 
 	public boolean writeUpdateRecord(String uuid, String body,String status,String detail) {
+		if(uuid==null) {
+			System.out.println("No UUID passed, returning");
+			return false;
+		}
+		
+		//updates
 		BasicDBObject newObj = new BasicDBObject();
 		newObj.put("uuid", uuid);
 		newObj.put("body", body); 
 		newObj.put("status", status);
 		newObj.put("detail", detail);
-
+		
+		//original
 		BasicDBObject whereQuery = new BasicDBObject();
 		whereQuery.put("uuid", uuid);
 		DBCursor cursor = collection.find(whereQuery);
 		System.out.println(cursor);
+		
 		WriteResult result;
 		if( cursor.hasNext() ) {
-			//TODO: do not overwrite old values if not in new values
 			DBObject obj = cursor.next();
+
+			//TODO: do not overwrite old values if not in new values. use mongo $set operator
+			//when done, REMOVE this hack:
+			newObj.put("body", obj.get("body")); //put old body in there
+			
 			result=collection.update(obj, newObj, true, false);
 		}else {
 			System.out.println("Could not find existing record, creating.");
