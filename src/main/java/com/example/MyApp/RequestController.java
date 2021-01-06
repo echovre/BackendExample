@@ -43,6 +43,15 @@ public class RequestController {
 		}
 	}
 
+	//Stub for third party request. Notes:
+	//Using apache library here because its supposedly faster
+	//Should do some load testing to confirm
+	//Just using sysout for logging right now, use something prettier(log4j?)
+	//TODO error handling:
+	//if the third party has some kind of "status" endpoint,
+	//		hit it when starting the controller so we know whether its up
+	//log and cache the request for retry later if failed
+	//write transaction and whether it succeeded to some "archive" table in database
 	private boolean makeThirdPartyRequest(Request req){
 		String url="http://example.com/request";
 		try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
@@ -64,24 +73,48 @@ public class RequestController {
 		}
 	}
 
+	//callback from third party service, with "started" message
 	@PostMapping(path = "/callback/{itemid}")
 	@ResponseStatus
-	public Response postCallback(@PathVariable("itemid") String itemid) {
+	public Response postCallback(@PathVariable("itemid") String itemid,
+							 	 @RequestBody Body payload) {
+		String message=payload.getBody();
+		if (message!="STARTED") {
+			System.out.println("Got unrecognized message:"+message);
+		}
 		System.out.println("got "+itemid);
+		//TODO: record itemid and status message
 		return Response.status(204).build();
 	}
 
-	/*
-	@PutMapping("/callback")
+	@PutMapping(path = "/callback/{itemid}")
 	@ResponseStatus
-	public Response putCallback(@RequestBody Body callback) {
+	public Response putCallback(@PathVariable("itemid") String itemid,
+								@RequestBody StatusDetail payload) {
+		System.out.println("got "+itemid+" callback with status:"+payload.getStatus()+", detail:"+payload.getDetail());
+		//TODO: record itemid, status(processed, completed, error), detail
 		return Response.status(204).build();
 	}
-	*/
 
-	@GetMapping("/status")
-	public Object doSomething(@RequestParam(value = "id", defaultValue = "") Integer id) {
-		return new Object();
+	@GetMapping(path = "/status/{itemid}")
+	@ResponseBody
+	public BodyStatusDetail status(@PathVariable("itemid") String itemid){
+		//TODO: get record itemid, status(processed, completed, error), detail
+		String body="";
+		String status="";
+		String detail="";
+		return new BodyStatusDetail(body,status,detail);
+		/*
+		//TODO better error checking here
+		String json = null;
+		try {
+			json = mapper.writeValueAsString(new BodyStatusDetail(body,status,detail));
+		} catch (JsonProcessingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return json;
+		*/
 	}
 
 }
