@@ -1,19 +1,18 @@
 package com.example.MyApp;
 
 import java.io.IOException;
+import java.util.Optional;
 import java.util.UUID;
 
 import javax.ws.rs.core.Response;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
-import org.apache.http.util.EntityUtils;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -27,13 +26,13 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @RestController
-public class HelloWorldController {
+public class RequestController {
 
 	ObjectMapper mapper = new ObjectMapper();
 
 	@PostMapping(path = "/request", consumes = "application/json", produces = "application/json")
-	@ResponseBody
 	public String request(@RequestBody Body payload) throws JsonMappingException, JsonProcessingException {
+		//TODO error handling for body
 		String uniqueID = UUID.randomUUID().toString();
 		Request req=new Request(payload.getBody(),uniqueID);
 		boolean success=makeThirdPartyRequest(req);
@@ -48,6 +47,7 @@ public class HelloWorldController {
 		String url="http://example.com/request";
 		try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
 			String requestObj=mapper.writeValueAsString(req);
+			System.out.println("Object to send:"+requestObj);
 			HttpPost httpPost = new HttpPost(url);
 			httpPost.setEntity(new StringEntity(requestObj));
 			System.out.println("Executing request " + httpPost.getRequestLine());
@@ -64,17 +64,20 @@ public class HelloWorldController {
 		}
 	}
 
-	@PostMapping("/callback")
+	@PostMapping(path = "/callback/{itemid}")
 	@ResponseStatus
-	public Response postCallback(@RequestParam(value = "name", defaultValue = "2") String value) {
+	public Response postCallback(@PathVariable("itemid") String itemid) {
+		System.out.println("got "+itemid);
 		return Response.status(204).build();
 	}
 
+	/*
 	@PutMapping("/callback")
 	@ResponseStatus
 	public Response putCallback(@RequestBody Body callback) {
 		return Response.status(204).build();
 	}
+	*/
 
 	@GetMapping("/status")
 	public Object doSomething(@RequestParam(value = "id", defaultValue = "") Integer id) {
