@@ -9,6 +9,10 @@ public class BodyStatusDetail {
 	public BodyStatusDetail() {
 	}
 
+	public boolean isEmpty() {
+		return body==null && status==null && detail==null; 
+	}
+	
 	public BodyStatusDetail(String body, String status, String detail) {
 		this.body=body;
 		this.status=status;

@@ -28,6 +28,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @RestController
 public class RequestController {
 
+	MongoConnection mongoConnection=new MongoConnection();
 	ObjectMapper mapper = new ObjectMapper();
 
 	@PostMapping(path = "/request", consumes = "application/json", produces = "application/json")
@@ -74,6 +75,7 @@ public class RequestController {
 	}
 
 	//callback from third party service, with "started" message
+	//a little unclear here, assuming the "body" is actually the "status"
 	@PostMapping(path = "/callback/{itemid}")
 	@ResponseStatus
 	public Response postCallback(@PathVariable("itemid") String itemid,
@@ -83,7 +85,7 @@ public class RequestController {
 			System.out.println("Got unrecognized message:"+message);
 		}
 		System.out.println("got "+itemid);
-		//TODO: record itemid and status message
+		mongoConnection.writeUpdateRecord(itemid, "", message, "");
 		return Response.status(204).build();
 	}
 
@@ -92,7 +94,9 @@ public class RequestController {
 	public Response putCallback(@PathVariable("itemid") String itemid,
 								@RequestBody StatusDetail payload) {
 		System.out.println("got "+itemid+" callback with status:"+payload.getStatus()+", detail:"+payload.getDetail());
-		//TODO: record itemid, status(processed, completed, error), detail
+		//status: started, processed, completed, error
+		//TODO: dont overwrite body
+		mongoConnection.writeUpdateRecord(itemid, "", payload.getStatus(), payload.getDetail());
 		return Response.status(204).build();
 	}
 
@@ -100,21 +104,11 @@ public class RequestController {
 	@ResponseBody
 	public BodyStatusDetail status(@PathVariable("itemid") String itemid){
 		//TODO: get record itemid, status(processed, completed, error), detail
-		String body="";
-		String status="";
-		String detail="";
-		return new BodyStatusDetail(body,status,detail);
-		/*
-		//TODO better error checking here
-		String json = null;
-		try {
-			json = mapper.writeValueAsString(new BodyStatusDetail(body,status,detail));
-		} catch (JsonProcessingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		BodyStatusDetail result = mongoConnection.findRecord(itemid);
+		if(result.isEmpty()) {
+			System.out.println("Could not find record:"+itemid);
 		}
-		return json;
-		*/
+		return result;
 	}
 
 }
